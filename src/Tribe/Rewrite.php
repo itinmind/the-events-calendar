@@ -97,94 +97,158 @@ class Tribe__Events__Rewrite extends  Tribe__Rewrite {
 	 * This should be called during tribe_events_pre_rewrite, which means other plugins needing to add rules
 	 * of their own can do so on the same hook at a lower or higher priority, according to how specific
 	 * those rules are.
-	 *
-	 * @param Tribe__Events__Rewrite $rewrite
 	 */
-	public function generate_core_rules( Tribe__Events__Rewrite $rewrite ) {
-		$rewrite
-			// Single
-			->single( array( '(\d{4}-\d{2}-\d{2})' ), array( Tribe__Events__Main::POSTTYPE => '%1', 'eventDate' => '%2' ) )
-			->single( array( '(\d{4}-\d{2}-\d{2})', 'embed' ), array( Tribe__Events__Main::POSTTYPE => '%1', 'eventDate' => '%2', 'embed' => 1 ) )
-			->single( array( '{{ all }}' ), array( Tribe__Events__Main::POSTTYPE => '%1', 'post_type' => Tribe__Events__Main::POSTTYPE, 'eventDisplay' => 'all' ) )
+	public function generate_core_rules() {
+		$this->generate_single_event_rules();
+		$this->generate_archive_rules();
+		$this->generate_fallback_rules();
+	}
 
-			->single( array( '(\d{4}-\d{2}-\d{2})', 'ical' ), array( Tribe__Events__Main::POSTTYPE => '%1', 'eventDate' => '%2', 'ical' => 1 ) )
-			->single( array( 'ical' ), array( 'ical' => 1, 'name' => '%1', 'post_type' => Tribe__Events__Main::POSTTYPE ) )
+	/**
+	 * Generates the rewrite rules needed to support single event view.
+	 */
+	protected function generate_single_event_rules() {
+		// Setup the single event view rewrite rules
+		$this->single(
+			array( '(\d{4}-\d{2}-\d{2})' ),
+			array( Tribe__Events__Main::POSTTYPE => '%1', 'eventDate' => '%2' )
+		)->single(
+			array( '(\d{4}-\d{2}-\d{2})', 'embed' ),
+			array( Tribe__Events__Main::POSTTYPE => '%1', 'eventDate' => '%2', 'embed' => 1 )
+		)->single(
+			array( '{{ all }}' ),
+			array( Tribe__Events__Main::POSTTYPE => '%1', 'post_type' => Tribe__Events__Main::POSTTYPE, 'eventDisplay' => 'all' )
+		)->single(
+			array( '(\d{4}-\d{2}-\d{2})', 'ical' ),
+			array( Tribe__Events__Main::POSTTYPE => '%1', 'eventDate' => '%2', 'ical' => 1 )
+		)->single(
+			array( 'ical' ),
+			array( 'ical' => 1, 'name' => '%1', 'post_type' => Tribe__Events__Main::POSTTYPE )
+		);
+	}
 
-			// Archive
-			->archive( array( '{{ page }}', '(\d+)' ), array( 'eventDisplay' => 'list', 'paged' => '%1' ) )
-			->archive( array( '{{ featured }}', '{{ page }}', '(\d+)' ), array( 'featured' => true, 'eventDisplay' => 'list', 'paged' => '%1' ) )
-			->archive( array( '(feed|rdf|rss|rss2|atom)' ), array( 'eventDisplay' => 'list', 'feed' => '%1' ) )
-			->archive( array( '{{ featured }}', '(feed|rdf|rss|rss2|atom)' ), array( 'featured' => true, 'eventDisplay' => 'list', 'feed' => '%1' ) )
-			->archive( array( '{{ month }}' ), array( 'eventDisplay' => 'month' ) )
-			->archive( array( '{{ month }}', '{{ featured }}' ), array( 'eventDisplay' => 'month', 'featured' => true ) )
-			->archive( array( '{{ list }}', '{{ page }}', '(\d+)' ), array( 'eventDisplay' => 'list', 'paged' => '%1' ) )
-			->archive( array( '{{ list }}', '{{ featured }}', '{{ page }}', '(\d+)' ), array( 'eventDisplay' => 'list', 'featured' => true, 'paged' => '%1' ) )
-			->archive( array( '{{ list }}' ), array( 'eventDisplay' => 'list' ) )
-			->archive( array( '{{ list }}', '{{ featured }}' ), array( 'eventDisplay' => 'list', 'featured' => true ) )
-			->archive( array( '{{ today }}' ), array( 'eventDisplay' => 'day' ) )
-			->archive( array( '{{ today }}', '{{ featured }}' ), array( 'eventDisplay' => 'day', 'featured' => true ) )
-			->archive( array( '(\d{4}-\d{2})' ), array( 'eventDisplay' => 'month', 'eventDate' => '%1' ) )
-			->archive( array( '(\d{4}-\d{2})', '{{ featured }}' ), array( 'eventDisplay' => 'month', 'eventDate' => '%1', 'featured' => true ) )
-			->archive( array( '(\d{4}-\d{2}-\d{2})' ), array( 'eventDisplay' => 'day', 'eventDate' => '%1' ) )
-			->archive( array( '(\d{4}-\d{2}-\d{2})', '{{ featured }}' ), array( 'eventDisplay' => 'day', 'eventDate' => '%1', 'featured' => true ) )
-			->archive( array( '{{ featured }}' ), array( 'featured' => true ) )
-			->archive( array(), array( 'eventDisplay' => 'default' ) )
-			->archive( array( 'ical' ), array( 'ical' => 1 ) )
-			->archive( array( '{{ featured }}', 'ical' ), array( 'ical' => 1, 'featured' => true ) )
-			->archive( array( '(\d{4}-\d{2}-\d{2})', 'ical' ), array( 'ical' => 1, 'eventDisplay' => 'day', 'eventDate' => '%1' ) )
-			->archive( array( '(\d{4}-\d{2}-\d{2})', 'ical', 'featured' ), array( 'ical' => 1, 'eventDisplay' => 'day', 'eventDate' => '%1', 'featured' => true ) )
+	/**
+	 * Generates view-specific rewrite rules.
+	 */
+	protected function generate_archive_rules() {
+		foreach ( tribe( 'tec.views' )->get_enabled_views() as $slug => $view ) {
+			// Skip if this is a single post view or if the implementation is handling rewrite rule generation
+			if ( $view['is_single'] || ! $view['autogenerate_rewrite_rules'] ) {
+				continue;
+			}
 
-			// Taxonomy
-			->tax( array( '{{ page }}', '(\d+)' ), array( 'eventDisplay' => 'list', 'paged' => '%2' ) )
-			->tax( array( '{{ featured }}', '{{ page }}', '(\d+)' ), array( 'featured' => true, 'eventDisplay' => 'list', 'paged' => '%2' ) )
-			->tax( array( '{{ month }}' ), array( 'eventDisplay' => 'month' ) )
-			->tax( array( '{{ month }}', '{{ featured }}' ), array( 'eventDisplay' => 'month', 'featured' => true ) )
-			->tax( array( '{{ list }}', '{{ page }}', '(\d+)' ), array( 'eventDisplay' => 'list', 'paged' => '%2' ) )
-			->tax( array( '{{ list }}', '{{ featured }}', '{{ page }}', '(\d+)' ), array( 'eventDisplay' => 'list', 'featured' => true, 'paged' => '%2' ) )
-			->tax( array( '{{ list }}' ), array( 'eventDisplay' => 'list' ) )
-			->tax( array( '{{ list }}', '{{ featured }}' ), array( 'eventDisplay' => 'list', 'featured' => true ) )
-			->tax( array( '{{ today }}' ), array( 'eventDisplay' => 'day' ) )
-			->tax( array( '{{ today }}', '{{ featured }}' ), array( 'eventDisplay' => 'day', 'featured' => true ) )
-			->tax( array( '{{ day }}', '(\d{4}-\d{2}-\d{2})' ), array( 'eventDisplay' => 'day', 'eventDate' => '%2' ) )
-			->tax( array( '{{ day }}', '(\d{4}-\d{2}-\d{2})', '{{ featured }}' ), array( 'eventDisplay' => 'day', 'eventDate' => '%2', 'featured' => true ) )
-			->tax( array( '(\d{4}-\d{2})' ), array( 'eventDisplay' => 'month', 'eventDate' => '%2' ) )
-			->tax( array( '(\d{4}-\d{2})', '{{ featured }}' ), array( 'eventDisplay' => 'month', 'eventDate' => '%2', 'featured' => true ) )
-			->tax( array( '(\d{4}-\d{2}-\d{2})' ), array( 'eventDisplay' => 'day', 'eventDate' => '%2' ) )
-			->tax( array( '(\d{4}-\d{2}-\d{2})', '{{ featured }}' ), array( 'eventDisplay' => 'day', 'eventDate' => '%2', 'featured' => true ) )
-			->tax( array( 'feed' ), array( 'eventDisplay' => 'list', 'feed' => 'rss2' ) )
-			->tax( array( '{{ featured }}', 'feed' ), array( 'featured' => true, 'eventDisplay' => 'list', 'feed' => 'rss2' ) )
-			->tax( array( 'ical' ), array( 'ical' => 1 ) )
-			->tax( array( '{{ featured }}', 'ical' ), array( 'featured' => true, 'ical' => 1 ) )
-			->tax( array( 'feed', '(feed|rdf|rss|rss2|atom)' ), array( 'feed' => '%2' ) )
-			->tax( array( '{{ featured }}', 'feed', '(feed|rdf|rss|rss2|atom)' ), array( 'featured' => true, 'feed' => '%2' ) )
-			->tax( array( '{{ featured }}' ), array( 'featured' => true, 'eventDisplay' => 'default' ) )
-			->tax( array(), array( 'eventDisplay' => 'default' ) )
+			$this->generate_rules( $this->standard_rewrite_rules( $slug, $view['rewrite_slug'] ) );
 
-			// Tag
-			->tag( array( '{{ page }}', '(\d+)' ), array( 'eventDisplay' => 'list', 'paged' => '%2' ) )
-			->tag( array( '{{ featured }}', '{{ page }}', '(\d+)' ), array( 'featured' => true, 'eventDisplay' => 'list', 'paged' => '%2' ) )
-			->tag( array( '{{ month }}' ), array( 'eventDisplay' => 'month' ) )
-			->tag( array( '{{ month }}', '{{ featured }}' ), array( 'eventDisplay' => 'month', 'featured' => true ) )
-			->tag( array( '{{ list }}', '{{ page }}', '(\d+)' ), array( 'eventDisplay' => 'list', 'paged' => '%2' ) )
-			->tag( array( '{{ list }}', '{{ featured }}', '{{ page }}', '(\d+)' ), array( 'eventDisplay' => 'list', 'featured' => true, 'paged' => '%2' ) )
-			->tag( array( '{{ list }}' ), array( 'eventDisplay' => 'list' ) )
-			->tag( array( '{{ list }}', '{{ featured }}' ), array( 'eventDisplay' => 'list', 'featured' => true ) )
-			->tag( array( '{{ today }}' ), array( 'eventDisplay' => 'day' ) )
-			->tag( array( '{{ today }}', '{{ featured }}' ), array( 'eventDisplay' => 'day', 'featured' => true ) )
-			->tag( array( '{{ day }}', '(\d{4}-\d{2}-\d{2})' ), array( 'eventDisplay' => 'day', 'eventDate' => '%2' ) )
-			->tag( array( '{{ day }}', '(\d{4}-\d{2}-\d{2})', '{{ featured }}' ), array( 'eventDisplay' => 'day', 'eventDate' => '%2', 'featured' => true ) )
-			->tag( array( '(\d{4}-\d{2})' ), array( 'eventDisplay' => 'month', 'eventDate' => '%2' ) )
-			->tag( array( '(\d{4}-\d{2})', '{{ featured }}' ), array( 'eventDisplay' => 'month', 'eventDate' => '%2', 'featured' => true ) )
-			->tag( array( '(\d{4}-\d{2}-\d{2})' ), array( 'eventDisplay' => 'day', 'eventDate' => '%2' ) )
-			->tag( array( '(\d{4}-\d{2}-\d{2})', '{{ featured }}' ), array( 'eventDisplay' => 'day', 'eventDate' => '%2', 'featured' => true ) )
-			->tag( array( 'feed' ), array( 'eventDisplay' => 'list', 'feed' => 'rss2' ) )
-			->tag( array( '{{ featured }}', 'feed' ), array( 'eventDisplay' => 'list', 'feed' => 'rss2', 'featured' => true ) )
-			->tag( array( 'ical' ), array( 'ical' => 1 ) )
-			->tag( array( '{{ featured }}', 'ical' ), array( 'featured' => true, 'ical' => 1 ) )
-			->tag( array( 'feed', '(feed|rdf|rss|rss2|atom)' ), array( 'feed' => '%2' ) )
-			->tag( array( '{{ featured }}', 'feed', '(feed|rdf|rss|rss2|atom)' ), array( 'featured' => true, 'feed' => '%2' ) )
-			->tag( array( '{{ featured }}' ), array( 'featured' => true ) )
-			->tag( array(), array( 'eventDisplay' => 'default' ) );
+			/**
+			 * Provides an opportunity for any view-specific rewrite rules that lie outside of
+			 * the standard pattern to be generated.
+			 *
+			 * @param Tribe__Events__Rewrite $rewrites_manager
+			 * @param array $view
+			 */
+			do_action( "tribe_events_rewrite_rules_$slug", $this, $view );
+		}
+	}
+
+	/**
+	 * This helper can be used to register a list of rewrite rules.
+	 *
+	 * It expects each element of the $rules array to itself be an array, typically composed of inner
+	 * arrays per the following example:
+	 *
+	 *     [
+	 *         [
+	 *             [ $pattern_to_match ],
+	 *             [ $rewrite_rule ]
+	 *         ],
+	 *         ...
+	 *     ]
+	 *
+	 * @internal
+	 *
+	 * @param array[] $rules
+	 */
+	public function generate_rules( array $rules ) {
+		foreach ( $rules as $individual_rule ) {
+			list( $pattern, $maps_to ) = $individual_rule;
+			$this->archive( $pattern, $maps_to );
+			$this->tax( $pattern, $maps_to );
+			$this->tag( $pattern, $maps_to );
+		}
+	}
+
+	/**
+	 * Returns an array of rewrite rules that can be applied to most views, customized in line with
+	 * the specified slugs.
+	 *
+	 * @param string $view_slug
+	 * @param string $rewrite_slug
+	 *
+	 * @return array
+	 */
+	protected function standard_rewrite_rules( $view_slug, $rewrite_slug ) {
+		/**
+		 * @param array  $rewrite_rules_array
+		 * @param string $view_slug
+		 * @param string $rewrite_slug
+		 */
+		return (array) apply_filters( 'tribe_events_rewrite_basic_rewrite_rules_template',
+			array(
+				array(
+					// Example: /view/page/1/
+					array( $rewrite_slug, '{{ page }}', '(\d+)' ),
+					array( 'eventDisplay' => $view_slug, 'paged' => '%1' ),
+				),
+				array(
+					// Example: /view/featured/page/1/
+					array( $rewrite_slug, '{{ featured }}', '{{ page }}', '(\d+)' ),
+					array( 'eventDisplay' => $view_slug, 'featured' => true, 'paged' => '%1' ),
+				),
+				array(
+					// Example: /view/
+					array( $rewrite_slug ),
+					array( 'eventDisplay' => $view_slug ),
+				),
+				array(
+					// Example: /view/featured/
+					array( $rewrite_slug, '{{ featured }}' ),
+					array( 'eventDisplay' => $view_slug, 'featured' => true ),
+				),
+				array(
+					// Example: /view/2017-12/
+					array( $rewrite_slug, '(\d{4}-\d{2})' ),
+					array( 'eventDisplay' => $view_slug, 'eventDate' => '%1' ),
+				),
+				array(
+					// Example: /view/2017-12/featured/
+					array( $rewrite_slug, '(\d{4}-\d{2})', '{{ featured }}' ),
+					array( 'eventDisplay' => $view_slug, 'eventDate' => '%1', 'featured' => true ),
+				),
+				array(
+					// Example: /view/2017-12-25/
+					array( $rewrite_slug, '(\d{4}-\d{2}-\d{2})' ),
+					array( 'eventDisplay' => $view_slug, 'eventDate' => '%1' ),
+				),
+				array(
+					// Example: /view/2017-12-25/featured/
+					array( $rewrite_slug, '(\d{4}-\d{2}-\d{2})', '{{ featured }}' ),
+					array( 'eventDisplay' => $view_slug, 'eventDate' => '%1', 'featured' => true ),
+				),
+			),
+			$view_slug,
+			$rewrite_slug
+		);
+	}
+
+	/**
+	 * Generates the rewrite rules required to support the default event view.
+	 */
+	protected function generate_fallback_rules() {
+		$default = array( 'eventDisplay' => 'default' );
+
+		$this->archive( array(), $default );
+		$this->tag( array(), $default );
+		$this->tax( array(), $default );
 	}
 
 	/**

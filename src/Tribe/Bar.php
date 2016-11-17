@@ -92,9 +92,9 @@ class Tribe__Events__Bar {
 	public function load_script() {
 
 		if ( $this->should_show() ) {
-			Tribe__Events__Template_Factory::asset_package( 'jquery-placeholder' );
-			Tribe__Events__Template_Factory::asset_package( 'bootstrap-datepicker' );
-			Tribe__Events__Template_Factory::asset_package( 'tribe-events-bar' );
+			Tribe__Events__Views__Base_View::asset_package( 'jquery-placeholder' );
+			Tribe__Events__Views__Base_View::asset_package( 'bootstrap-datepicker' );
+			Tribe__Events__Views__Base_View::asset_package( 'tribe-events-bar' );
 
 			do_action( 'tribe-events-bar-enqueue-scripts' );
 		}

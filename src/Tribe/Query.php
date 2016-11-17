@@ -96,7 +96,7 @@ if ( ! class_exists( 'Tribe__Events__Query' ) ) {
 				: false;
 
 			if ( 'default' === $query->get( 'eventDisplay' ) ) {
-				$query->set( 'eventDisplay', Tribe__Events__Main::instance()->default_view() );
+				$query->set( 'eventDisplay', tribe( 'tec.views' )->get_default_view_slug() );
 			}
 
 			// check if any possiblity of this being an event category

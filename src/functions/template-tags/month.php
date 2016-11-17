@@ -38,7 +38,7 @@ if ( class_exists( 'Tribe__Events__Main' ) ) {
 			}
 		}
 
-		$month_class = new Tribe__Events__Template__Month( $args );
+		$month_class = new Tribe__Events__Views__Month_View( $args );
 		$month_class->setup_view();
 
 		do_action( 'tribe_events_before_show_month' );
@@ -88,10 +88,10 @@ if ( class_exists( 'Tribe__Events__Main' ) ) {
 	 * </ code >
 	 *
 	 * @return bool
-	 * @see Tribe__Events__Template__Month::have_days()
+	 * @see Tribe__Events__Views__Month_View::have_days()
 	 **/
 	function tribe_events_have_month_days() {
-		return Tribe__Events__Template__Month::have_days();
+		return Tribe__Events__Views__Month_View::have_days();
 	}
 
 	/**
@@ -108,10 +108,10 @@ if ( class_exists( 'Tribe__Events__Main' ) ) {
 	 * ?>
 	 * </ code >
 	 *
-	 * @see Tribe__Events__Template__Month::the_day()
+	 * @see Tribe__Events__Views__Month_View::the_day()
 	 **/
 	function tribe_events_the_month_day() {
-		Tribe__Events__Template__Month::the_day();
+		Tribe__Events__Views__Month_View::the_day();
 	}
 
 	/**
@@ -129,10 +129,10 @@ if ( class_exists( 'Tribe__Events__Main' ) ) {
 	 * </ code >
 	 *
 	 * @return int
-	 * @see Tribe__Events__Template__Month::get_current_week()
+	 * @see Tribe__Events__Views__Month_View::get_current_week()
 	 **/
 	function tribe_events_get_current_week() {
-		return Tribe__Events__Template__Month::get_current_week();
+		return Tribe__Events__Views__Month_View::get_current_week();
 	}
 
 	/**
@@ -150,37 +150,37 @@ if ( class_exists( 'Tribe__Events__Main' ) ) {
 	 *    'date' => 'previous' or 'next'
 	 *
 	 * @return array
-	 * @see Tribe__Events__Template__Month::get_current_day()
+	 * @see Tribe__Events__Views__Month_View::get_current_day()
 	 **/
 	function tribe_events_get_current_month_day() {
-		return apply_filters( 'tribe_events_get_current_month_day', Tribe__Events__Template__Month::get_current_day() );
+		return apply_filters( 'tribe_events_get_current_month_day', Tribe__Events__Views__Month_View::get_current_day() );
 	}
 
 	/**
 	 * Used in the month loop.
 	 * Outputs classes for the current month day, including special classes for past / present / future days
 	 *
-	 * @see Tribe__Events__Template__Month::day_classes()
+	 * @see Tribe__Events__Views__Month_View::day_classes()
 	 **/
 	function tribe_events_the_month_day_classes() {
-		echo apply_filters( 'tribe_events_the_month_day_class', Tribe__Events__Template__Month::day_classes() );
+		echo apply_filters( 'tribe_events_the_month_day_class', Tribe__Events__Views__Month_View::day_classes() );
 	}
 
 	/**
 	 * Used in the month loop.
 	 * Outputs classes for the current single event in the month loop
 	 *
-	 * @see Tribe__Events__Template__Month::event_classes()
+	 * @see Tribe__Events__Views__Month_View::event_classes()
 	 **/
 	function tribe_events_the_month_single_event_classes() {
-		echo apply_filters( 'tribe_events_the_month_single_event_classes', Tribe__Events__Template__Month::event_classes() );
+		echo apply_filters( 'tribe_events_the_month_single_event_classes', Tribe__Events__Views__Month_View::event_classes() );
 	}
 
 	/**
 	 * Returns whether there are any events in the month
 	 *
 	 * @return bool
-	 * @see Tribe__Events__Template__Month::get_daily_counts()
+	 * @see Tribe__Events__Views__Month_View::get_daily_counts()
 	 **/
 	function tribe_events_month_has_events() {
 		return apply_filters( 'tribe_events_month_has_events', false );

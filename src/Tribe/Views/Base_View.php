@@ -1,39 +1,25 @@
 <?php
-/**
- * Template Factory
- *
- * The parent class for managing the view methods in core and addons
- *
- */
 
-if ( ! defined( 'ABSPATH' ) ) {
-	die( '-1' );
-}
-
-if ( class_exists( 'Tribe__Events__Template_Factory' ) ) {
-	return;
-}
-
-class Tribe__Events__Template_Factory extends Tribe__Template_Factory {
+class Tribe__Events__Views__Base_View extends Tribe__Views__Base_View {
 	/**
 	 * Length for excerpts on this template
 	 *
 	 * @var int
-	 **/
+	 */
 	protected $excerpt_length = 80;
 
 	/**
 	 * Text for excerpt more on this template
 	 *
 	 * @var string
-	 **/
+	 */
 	protected $excerpt_more = '&hellip;';
 
 	/**
 	 * Body class on this view
 	 *
 	 * @var string
-	 **/
+	 */
 	protected $body_class = '';
 
 	/**
@@ -45,32 +31,23 @@ class Tribe__Events__Template_Factory extends Tribe__Template_Factory {
 	protected $comments_off = false;
 
 	/**
-	 * Run include packages, set up hooks
+	 * Indicates if the view is currently enabled.
 	 *
-	 **/
-	public function __construct() {
-		$this->hooks();
-		$this->asset_packages();
+	 * @return bool
+	 */
+	public function is_enabled() {
+		return tribe( 'tec.views' )->is_enabled( $this->slug );
 	}
 
 	/**
-	 * Set up hooks for this template
-	 *
-	 **/
-	protected function hooks() {
-
-		$current_class = get_class( $this );
-		$ajax_hook     = constant( $current_class . '::AJAX_HOOK' );
-
+	 * Sets up any actions and filters required for successful rendering of the view.
+	 */
+	public function hook() {
 		// set up queries, vars, etc that needs to be used in this view
-		add_action( 'tribe_events_before_view', array( $this, 'setup_view' ), 10 );
-
-		// ajax requests
-		add_action( 'wp_ajax_' . $ajax_hook, array( $this, 'ajax_response' ) );
-		add_action( 'wp_ajax_nopriv_' . $ajax_hook, array( $this, 'ajax_response' ) );
+		add_action( 'tribe_view_pre_render', array( $this, 'setup_view' ), 10 );
 
 		// set notices
-		add_action( 'tribe_events_before_view', array( $this, 'set_notices' ), 15 );
+		add_action( 'tribe_view_pre_render', array( $this, 'set_notices' ), 15 );
 
 		// Don't show the comments form inside the view (if comments are enabled,
 		// they'll show on their own after the loop)
@@ -82,7 +59,7 @@ class Tribe__Events__Template_Factory extends Tribe__Template_Factory {
 		add_filter( 'tribe_get_option', array( $this, 'comments_off' ), 10, 2 );
 
 		// cleanup after view (reset query, etc)
-		add_action( 'tribe_events_after_view', array( $this, 'shutdown_view' ) );
+		add_action( 'tribe_view_post_render', array( $this, 'shutdown_view' ) );
 
 		// add wrapper html and input hash to non-ajax request
 		add_action( 'tribe_events_before_template', array( $this, 'view_wrapper_open' ) );
@@ -103,7 +80,19 @@ class Tribe__Events__Template_Factory extends Tribe__Template_Factory {
 
 		// event classes
 		add_filter( 'tribe_events_event_classes', array( $this, 'event_classes' ) );
+	}
 
+	/**
+	 * Returns the view output.
+	 *
+	 * @return string
+	 */
+	public function output() {
+		if ( empty( $this->output ) ) {
+			$this->generate();
+		}
+
+		return $this->output;
 	}
 
 	/**
@@ -113,7 +102,6 @@ class Tribe__Events__Template_Factory extends Tribe__Template_Factory {
 	 * @param array  $deps Dependents
 	 */
 	public static function asset_package( $name, $deps = array() ) {
-
 		$common = Tribe__Events__Main::instance();
 		$prefix = 'tribe-events'; // Tribe__Events__Main::POSTTYPE;
 
@@ -133,9 +121,7 @@ class Tribe__Events__Template_Factory extends Tribe__Template_Factory {
 	 * @param Tribe__Main $tec        An instance of the main plugin class
 	 */
 	protected static function handle_asset_package_request( $name, $deps, $vendor_url, $prefix, $tec ) {
-
 		$asset = self::get_asset_factory_instance( $name );
-
 		self::prepare_asset_package_request( $asset, $name, $deps, $vendor_url, $prefix, $tec );
 	}
 
@@ -155,7 +141,6 @@ class Tribe__Events__Template_Factory extends Tribe__Template_Factory {
 	 * @return array
 	 */
 	public function body_class( $classes = array() ) {
-
 		// view class
 		$classes[] = $this->body_class;
 
@@ -213,22 +198,22 @@ class Tribe__Events__Template_Factory extends Tribe__Template_Factory {
 
 		// customize meta items
 		tribe_set_the_meta_template( 'tribe_event_venue_name', array(
-				'before'       => '',
-				'after'        => '',
-				'label_before' => '',
-				'label_after'  => '',
-				'meta_before'  => '<span class="%s">',
-				'meta_after'   => '</span>',
-			) );
+			'before'       => '',
+			'after'        => '',
+			'label_before' => '',
+			'label_after'  => '',
+			'meta_before'  => '<span class="%s">',
+			'meta_after'   => '</span>',
+		) );
 		tribe_set_meta_label( 'tribe_event_venue_address', '' );
 		tribe_set_the_meta_template( 'tribe_event_venue_address', array(
-				'before'       => '',
-				'after'        => '',
-				'label_before' => '',
-				'label_after'  => '',
-				'meta_before'  => '',
-				'meta_after'   => '',
-			) );
+			'before'       => '',
+			'after'        => '',
+			'label_before' => '',
+			'label_after'  => '',
+			'meta_before'  => '',
+			'meta_after'   => '',
+		) );
 	}
 
 	/**
@@ -309,10 +294,8 @@ class Tribe__Events__Template_Factory extends Tribe__Template_Factory {
 
 	/**
 	 * Setup the view, query hijacking, etc. This happens right before the view file is included
-	 *
-	 **/
+	 */
 	public function setup_view() {
-
 		global $wp_query;
 
 		// don't show past posts in reverse order
@@ -395,10 +378,10 @@ class Tribe__Events__Template_Factory extends Tribe__Template_Factory {
 	}
 
 	/**
-	 * Function to execute when ajax view is requested
+	 * Function to execute when ajax view is requested.
 	 */
 	public function ajax_response() {
-		die();
+		tribe_exit();
 	}
 
 	/**
@@ -424,10 +407,10 @@ class Tribe__Events__Template_Factory extends Tribe__Template_Factory {
 		}
 
 		// set up queries, vars, etc that needs to be used in this view
-		remove_action( 'tribe_events_before_view', array( $this, 'setup_view' ) );
+		remove_action( 'tribe_view_pre_render', array( $this, 'setup_view' ) );
 
 		// set notices
-		remove_action( 'tribe_events_before_view', array( $this, 'set_notices' ) );
+		remove_action( 'tribe_view_pre_render', array( $this, 'set_notices' ) );
 
 		// Remove the comments template
 		if ( ! ( tribe_get_option( 'tribeEventsTemplate', 'default' ) == '' ) ) {
@@ -435,10 +418,10 @@ class Tribe__Events__Template_Factory extends Tribe__Template_Factory {
 		}
 
 		// set up meta used in this view
-		remove_action( 'tribe_events_before_view', array( $this, 'setup_meta' ) );
+		remove_action( 'tribe_view_pre_render', array( $this, 'setup_meta' ) );
 
 		// cleanup after view (reset query, etc)
-		remove_action( 'tribe_events_after_view', array( $this, 'shutdown_view' ) );
+		remove_action( 'tribe_view_post_render', array( $this, 'shutdown_view' ) );
 
 		// add wrapper html and input hash to non-ajax request
 		remove_action( 'tribe_events_before_template', array( $this, 'view_wrapper_open' ) );
@@ -533,6 +516,5 @@ class Tribe__Events__Template_Factory extends Tribe__Template_Factory {
 		}
 
 		return $option_value;
-
 	}
 }

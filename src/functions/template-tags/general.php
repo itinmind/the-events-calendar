@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 if ( class_exists( 'Tribe__Events__Main' ) ) {
 
 	/**
-	 * Instantiate the template class, preparing a view file for use. If no name is passed, defaults to the class for the current view
+	 * If no name is passed, defaults to the class for the current view
 	 *
 	 * @param bool|string $class Classname you want to instantiate
 	 *
@@ -34,6 +34,18 @@ if ( class_exists( 'Tribe__Events__Main' ) ) {
 
 		do_action( 'tribe_pre_get_view' );
 
+		/**
+		 * @var Tribe__Events__Views__Loader $view_loader
+		 */
+		$view_loader = tribe( 'tec.views.loader' );
+
+		if ( $view_loader->has_selected_view() ) {
+			echo $view_loader->get_selected_view()->get_output();
+		}
+
+		return;
+
+
 		if ( ! $view ) {
 			$template_file = tribe_get_current_template();
 		} else {
@@ -41,9 +53,9 @@ if ( class_exists( 'Tribe__Events__Main' ) ) {
 		}
 
 		if ( file_exists( $template_file ) ) {
-			do_action( 'tribe_events_before_view', $template_file );
+			do_action( 'tribe_view_pre_render', $template_file );
 			include( $template_file );
-			do_action( 'tribe_events_after_view', $template_file );
+			do_action( 'tribe_view_post_render', $template_file );
 		}
 	}
 
@@ -122,7 +134,7 @@ if ( class_exists( 'Tribe__Events__Main' ) ) {
 
 		// loop through templates, return first one found.
 		foreach ( $templates as $template ) {
-			$file = Tribe__Events__Templates::getTemplateHierarchy( $template, array( 'disable_view_check' => true ) );
+			$file = Tribe__Events__Views__Template::locate( $template, array( 'disable_view_check' => true ) );
 			$file = apply_filters( 'tribe_get_template_part_path', $file, $template, $slug, $name );
 			$file = apply_filters( 'tribe_get_template_part_path_' . $template, $file, $slug, $name );
 			if ( file_exists( $file ) ) {
@@ -152,7 +164,7 @@ if ( class_exists( 'Tribe__Events__Main' ) ) {
 					$is_ajax_view_request = ( ! empty( $_REQUEST['tribe_event_display'] ) || ! empty( $_REQUEST['eventDate'] ) || ! empty( $_REQUEST['tribe-bar-date'] ) || ! empty( $_REQUEST['tribe_paged'] ) );
 					break;
 				case 'month' :
-					$is_ajax_view_request = ( $_REQUEST['action'] == Tribe__Events__Template__Month::AJAX_HOOK );
+					$is_ajax_view_request = ( $_REQUEST['action'] == Tribe__Events__Views__Month_View::AJAX_HOOK );
 					break;
 				case 'list' :
 					$is_ajax_view_request = ( $_REQUEST['action'] == Tribe__Events__Template__List::AJAX_HOOK );

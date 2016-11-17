@@ -251,6 +251,7 @@ if ( ! class_exists( 'Tribe__Events__Main' ) ) {
 				$this->loadLibraries();
 				$this->addHooks();
 				$this->maybe_load_tickets_framework();
+				$this->init_views();
 			} else {
 				// Either PHP or WordPress version is inadequate so we simply return an error.
 				add_action( 'admin_head', array( $this, 'notSupportedError' ) );
@@ -323,6 +324,45 @@ if ( ! class_exists( 'Tribe__Events__Main' ) ) {
 			if ( ! defined( 'TRIBE_DISABLE_DEPRECATED_TAGS' ) ) {
 				require_once $this->plugin_path . 'src/functions/template-tags/deprecated.php';
 			}
+
+			tribe_singleton( 'tec.featured_events', 'Tribe__Events__Featured_Events' );
+			tribe_singleton( 'tec.featured_events.query_helper', new Tribe__Events__Featured_Events__Query_Helper );
+			tribe_singleton( 'tec.featured_events.permalinks_helper', new Tribe__Events__Featured_Events__Permalinks_Helper );
+			tribe_singleton( 'tec.rss', 'Tribe__Events__RSS' );
+
+			// Front page events archive support
+			tribe_singleton( 'tec.front-page-view', 'Tribe__Events__Front_Page_View' );
+			tribe_singleton( 'tec.admin.front-page-view', 'Tribe__Events__Admin__Front_Page_View' );
+		}
+
+		/**
+		 * Instantiate the view manager and register the core views.
+		 */
+		protected function init_views() {
+			$views = new Tribe__Events__Views;
+			tribe_singleton( 'tec.views', $views );
+			tribe_singleton( 'tec.views.extra_rewrite_rules', new Tribe__Events__Views__Extra_Rewrite_Rules );
+
+			$views->register( 'month', _x( 'Month', 'view title', 'the-events-calendar' ), 'Tribe__Events__Views__Month_View', array(
+				'ajax_hook'      => 'tribe_calendar',
+				'asset_packages' => array( 'ajax-calendar' ),
+				'body_class'     => 'events-gridview',
+				'rewrite_slug'   => $this->monthSlug,
+			) );
+
+			$views->register( 'list', _x( 'List', 'view title', 'the-events-calendar' ), 'Tribe__Events__Views__List_View', array(
+				'ajax_hook'      => 'tribe_list',
+				'asset_packages' => array( 'ajax-list' ),
+				'body_class'     => 'events-list',
+				'rewrite_slug'   => $this->listSlug,
+			) );
+
+			$views->register( 'day', _x( 'Day', 'view title', 'the-events-calendar' ), 'Tribe__Events__Views__Day_View', array(
+				'ajax_hook'      => 'tribe_event_day',
+				'asset_packages' => array( 'ajax-dayview' ),
+				'body_class'     => 'tribe-events-day',
+				'rewrite_slug'   => $this->daySlug,
+			) );
 
 			// Front page events archive support
 			tribe_singleton( 'tec.front-page-view', 'Tribe__Events__Front_Page_View' );
@@ -461,7 +501,6 @@ if ( ! class_exists( 'Tribe__Events__Main' ) ) {
 
 			// Styling
 			add_filter( 'post_class', array( $this, 'post_class' ) );
-			add_filter( 'body_class', array( $this, 'body_class' ) );
 			add_filter( 'admin_body_class', array( $this, 'admin_body_class' ) );
 
 			add_filter( 'post_type_archive_link', array( $this, 'event_archive_link' ), 10, 2 );
@@ -566,7 +605,6 @@ if ( ! class_exists( 'Tribe__Events__Main' ) ) {
 			add_action( 'plugins_loaded', array( $this, 'init_day_view' ), 2 );
 
 			add_action( 'plugins_loaded', array( 'Tribe__Events__Bar', 'instance' ) );
-			add_action( 'plugins_loaded', array( 'Tribe__Events__Templates', 'init' ) );
 
 			add_action( 'init', array( $this, 'filter_cron_schedules' ) );
 
@@ -620,12 +658,11 @@ if ( ! class_exists( 'Tribe__Events__Main' ) ) {
 			tribe_singleton( 'tec.admin.event-meta-box', 'Tribe__Events__Admin__Event_Meta_Box' );
 
 			// Add support for featured events
-			tribe_singleton( 'tec.featured_events', 'Tribe__Events__Featured_Events' );
-			tribe_singleton( 'tec.featured_events.query_helper', new Tribe__Events__Featured_Events__Query_Helper );
-			tribe_singleton( 'tec.featured_events.permalinks_helper', new Tribe__Events__Featured_Events__Permalinks_Helper );
-
 			tribe( 'tec.featured_events.query_helper' )->hook();
 			tribe( 'tec.featured_events.permalinks_helper' )->hook();
+
+			// RSS support
+			tribe( 'tec.rss' )->hook();
 
 			// Add support for positioning the main events view on the site homepage
 			tribe( 'tec.front-page-view' )->hook();
@@ -1423,24 +1460,6 @@ if ( ! class_exists( 'Tribe__Events__Main' ) ) {
 		}
 
 		/**
-		 * Update body classes
-		 *
-		 * @param array $classes
-		 *
-		 * @return array
-		 * @TODO move this to template class
-		 */
-		public function body_class( $classes ) {
-			if ( get_query_var( 'post_type' ) == self::POSTTYPE ) {
-				if ( ! is_admin() && tribe_get_option( 'liveFiltersUpdate', true ) ) {
-					$classes[] = 'tribe-filter-live';
-				}
-			}
-
-			return $classes;
-		}
-
-		/**
 		 * Update post classes
 		 *
 		 * @param array $classes
@@ -1937,19 +1956,19 @@ if ( ! class_exists( 'Tribe__Events__Main' ) ) {
 			}
 
 			// UI admin
-			Tribe__Events__Template_Factory::asset_package( 'admin-menu' );
+			Tribe__Events__Views__Base_View::asset_package( 'admin-menu' );
 
 			// settings screen
 			if ( $admin_helpers->is_screen( 'settings_page_tribe-settings' ) ) {
 
 				// chosen
-				Tribe__Events__Template_Factory::asset_package( 'chosen' );
+				Tribe__Events__Views__Base_View::asset_package( 'chosen' );
 
 				// JS admin
-				Tribe__Events__Template_Factory::asset_package( 'admin' );
+				Tribe__Events__Views__Base_View::asset_package( 'admin' );
 
 				// JS settings
-				Tribe__Events__Template_Factory::asset_package( 'settings' );
+				Tribe__Events__Views__Base_View::asset_package( 'settings' );
 
 				wp_enqueue_script( 'thickbox' );
 				wp_enqueue_style( 'thickbox' );
@@ -1959,47 +1978,47 @@ if ( ! class_exists( 'Tribe__Events__Main' ) ) {
 			}
 
 			if ( $admin_helpers->is_screen( 'widgets' ) ) {
-				Tribe__Events__Template_Factory::asset_package( 'tribe-select2' );
-				Tribe__Events__Template_Factory::asset_package( 'chosen' );
-				Tribe__Events__Template_Factory::asset_package( 'admin' );
+				Tribe__Events__Views__Base_View::asset_package( 'tribe-select2' );
+				Tribe__Events__Views__Base_View::asset_package( 'chosen' );
+				Tribe__Events__Views__Base_View::asset_package( 'admin' );
 			}
 
 			// events, organizer, or venue editing
 			if ( $admin_helpers->is_post_type_screen() ) {
 
 				// chosen
-				Tribe__Events__Template_Factory::asset_package( 'chosen' );
+				Tribe__Events__Views__Base_View::asset_package( 'chosen' );
 
 				// select 2
-				Tribe__Events__Template_Factory::asset_package( 'tribe-select2' );
+				Tribe__Events__Views__Base_View::asset_package( 'tribe-select2' );
 
 				//php date formatter
-				Tribe__Events__Template_Factory::asset_package( 'php-date-formatter' );
+				Tribe__Events__Views__Base_View::asset_package( 'php-date-formatter' );
 
 				//dynamic helper text
-				Tribe__Events__Template_Factory::asset_package( 'dynamic' );
+				Tribe__Events__Views__Base_View::asset_package( 'dynamic' );
 
 				// date picker
-				Tribe__Events__Template_Factory::asset_package( 'datepicker' );
+				Tribe__Events__Views__Base_View::asset_package( 'datepicker' );
 
 				// jQuery Timepicker
 				wp_enqueue_script( 'tribe-jquery-timepicker' );
 				wp_enqueue_style( 'tribe-jquery-timepicker-css' );
 
 				// dialog
-				Tribe__Events__Template_Factory::asset_package( 'dialog' );
+				Tribe__Events__Views__Base_View::asset_package( 'dialog' );
 
 				// UI admin
-				Tribe__Events__Template_Factory::asset_package( 'admin-ui' );
+				Tribe__Events__Views__Base_View::asset_package( 'admin-ui' );
 
 				// JS admin
-				Tribe__Events__Template_Factory::asset_package( 'admin' );
+				Tribe__Events__Views__Base_View::asset_package( 'admin' );
 
 				// Admin Legacy Migration
-				Tribe__Events__Template_Factory::asset_package( 'admin-migrate-legacy-ignored-events' );
+				Tribe__Events__Views__Base_View::asset_package( 'admin-migrate-legacy-ignored-events' );
 
 				// ecp placeholders
-				Tribe__Events__Template_Factory::asset_package( 'ecp-plugins' );
+				Tribe__Events__Views__Base_View::asset_package( 'ecp-plugins' );
 
 				if ( $admin_helpers->is_post_type_screen( self::POSTTYPE ) ) {
 					tribe_asset( $this, 'tribe-events-editor', 'event-editor.js', array( 'jquery' ), 'admin_enqueue_scripts' );
@@ -2299,19 +2318,19 @@ if ( ! class_exists( 'Tribe__Events__Main' ) ) {
 			if ( tribe_is_event_query() || tribe_is_event_organizer() || tribe_is_event_venue() ) {
 
 				// jquery-resize
-				Tribe__Events__Template_Factory::asset_package( 'jquery-resize' );
+				Tribe__Events__Views__Base_View::asset_package( 'jquery-resize' );
 
 				// smoothness
-				Tribe__Events__Template_Factory::asset_package( 'smoothness' );
+				Tribe__Events__Views__Base_View::asset_package( 'smoothness' );
 
 				// Tribe Calendar JS
-				Tribe__Events__Template_Factory::asset_package( 'calendar-script' );
+				Tribe__Events__Views__Base_View::asset_package( 'calendar-script' );
 
-				Tribe__Events__Template_Factory::asset_package( 'events-css' );
+				Tribe__Events__Views__Base_View::asset_package( 'events-css' );
 			} else {
 				if ( is_active_widget( false, false, 'tribe-events-list-widget' ) ) {
 
-					Tribe__Events__Template_Factory::asset_package( 'events-css' );
+					Tribe__Events__Views__Base_View::asset_package( 'events-css' );
 
 				}
 			}
@@ -2369,27 +2388,13 @@ if ( ! class_exists( 'Tribe__Events__Main' ) ) {
 		 * This can be useful is for instance a view added by another plugin (such as PRO) is
 		 * stored as the default but can no longer be generated due to the plugin being deactivated.
 		 *
+		 * @deprecated 4.4
+		 *
 		 * @return string
 		 */
 		public function default_view() {
-			// Compare the stored default view option to the list of available views
-			$default         = Tribe__Settings_Manager::instance()->get_option( 'viewOption', 'month' );
-			$available_views = (array) apply_filters( 'tribe-events-bar-views', array(), false );
-
-			foreach ( $available_views as $view ) {
-				if ( $default === $view['displaying'] ) {
-					return $default;
-				}
-			}
-
-			// If the stored option is no longer available, pick the first available one instead
-			$first_view = array_shift( $available_views );
-			$view       = $first_view['displaying'];
-
-			// Update the saved option
-			Tribe__Settings_Manager::instance()->set_option( 'viewOption', $view );
-
-			return $view;
+			_deprecated_function( __METHOD__, '4.4', 'Tribe__Events__Views::get_default_view_slug()' );
+			return tribe( 'tec.views' )->get_default_view_slug();
 		}
 
 		protected function setup_l10n_strings() {
