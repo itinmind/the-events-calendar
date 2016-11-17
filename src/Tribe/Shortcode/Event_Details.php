@@ -178,7 +178,7 @@ class Tribe__Events__Shortcode__Event_Details {
 
 		// Ensure the expected CSS is available to style the shortcode output (this will
 		// happen automatically in event views, but not elsewhere)
-		Tribe__Events__Template_Factory::asset_package( 'events-css' );
+		Tribe__Events__Views__Base_View::asset_package( 'events-css' );
 
 		// Start to record the Output
 		ob_start();

@@ -15,7 +15,7 @@ if ( ! class_exists( 'Tribe__Events__Template__Single_Event' ) ) {
 	/**
 	 * Single event template class
 	 */
-	class Tribe__Events__Template__Single_Event extends Tribe__Events__Template_Factory {
+	class Tribe__Events__Template__Single_Event extends Tribe__Events__Views__Base_View {
 
 		/**
 		 * The path to the template file used for the view.
