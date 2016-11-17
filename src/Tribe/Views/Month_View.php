@@ -1038,39 +1038,6 @@ class Tribe__Events__Views__Month_View extends Tribe__Events__Views__Base_View {
 		return $classes;
 	}
 
-	/**
-	 * Month View Ajax Handler
-	 *
-	 * @todo this method is disused and Tribe__Events__Views__Loader::ajax_response() should ultimately replace it
-	 */
-	public function ajax_response() {
-
-		if ( isset( $_POST['eventDate'] ) && $_POST['eventDate'] ) {
-
-			Tribe__Events__Query::init();
-
-			Tribe__Events__Main::instance()->displaying = 'month';
-
-			global $wp_query;
-
-			$wp_query = tribe_get_events( $this->args, true );
-
-			ob_start();
-
-			tribe_get_view( 'month/content' );
-
-			$response = array(
-				'html'    => ob_get_clean(),
-				'success' => true,
-				'view'    => 'month',
-			);
-			apply_filters( 'tribe_events_ajax_response', $response );
-			header( 'Content-type: application/json' );
-			echo json_encode( $response );
-			die();
-		}
-	}
-
 	public function has_events() {
 		return (bool) $this->events_in_month;
 	}

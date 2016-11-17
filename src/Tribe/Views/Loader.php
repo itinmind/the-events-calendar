@@ -133,12 +133,15 @@ class Tribe__Events__Views__Loader {
 
 		if ( $this->selected_view ) {
 			$this->setup_query_for_ajax_response();
+			$query = $this->selected_view->get_query();
 
 			$response = array (
 				'html'        => $this->selected_view->get_output(),
 				'success'     => true,
-				'total_count' => $this->selected_view->get_post_count(),
-				'view'        => $this->selected_view->get_slug(),
+				'view'        =>  $this->selected_view->get_slug(),
+				'max_pages'   => $query->max_num_pages,
+				'total_count' => $query->total_count,
+				'hash'        => md5( $query->query_vars ),
 			);
 
 			/**
@@ -171,9 +174,56 @@ class Tribe__Events__Views__Loader {
 	protected function setup_query_for_ajax_response() {
 		global $wp_query;
 
-		$wp_query = new WP_Query( array(
-			'post_type' => 'tribe_events'
-		) );
+		// Setup basic query args
+		$args = array(
+			'eventDisplay' => $this->selected_view->get_slug(),
+			'post_type'    => Tribe__Events__Main::POSTTYPE,
+			'post_status'  => is_user_logged_in() ? array( 'publish', 'private' ) : array( 'private' ),
+			'paged'        => ! empty( $_POST['tribe_paged'] ) ? intval( $_POST['tribe_paged'] ) : 1,
+		);
+
+		// Support past event requests
+		if ( isset( $_POST['tribe_event_display'] ) && 'past' === $_POST['tribe_event_display'] ) {
+			$args[ 'eventDisplay' ] = 'past';
+			$args[ 'order' ] = 'DESC';
+		}
+
+		// Support 'all' event requests - @todo consider moving across to ECP
+		if ( 'all' === $_POST[ 'tribe_event_display' ] ) {
+			$args[ 'eventDisplay' ] = 'all';
+		}
+
+		// Support category requests
+		if ( isset( $_POST['tribe_event_category'] ) ) {
+			$args[ Tribe__Events__Main::TAXONOMY ] = $_POST['tribe_event_category'];
+		}
+
+		// Add the eventdate if provided
+		if ( isset( $_POST['eventDate'] ) ) {
+			$args['eventDate'] = $_POST['eventDate'];
+		}
+
+		// Setting/checking the hash is used to detect if the primary arguments have changed (example: if Filter
+		// Bar is active and the filter options have changed)
+		$query = tribe_get_events( $args, true );
+		$hash  = md5( maybe_serialize( $query->query_vars ) );
+
+		// Go back to page one if the hash has changed
+		if ( ! empty( $_POST['hash'] ) && $hash !== $_POST['hash'] ) {
+			$args['paged'] = 1;
+		}
+
+		/**
+		 * Dictates the arguments of the query used to populate event views
+		 * during ajax requests.
+		 *
+		 * @param array $args
+		 * @param Tribe__Events__Views__Base_View $view
+		 */
+		$args = (array) apply_filters( 'tribe_events_views_ajax_query_args', $args, $this->selected_view );
+
+		Tribe__Events__Query::init();
+		$wp_query = new WP_Query( $args );
 
 		$this->selected_view->set_data( array(
 			'query' => $wp_query
