@@ -4,8 +4,8 @@
 class Tribe__Events__Asset__Calendar_Script extends Tribe__Events__Asset__Abstract_Asset {
 
 	public function handle() {
-		$deps   = array_merge( $this->deps, array( 'jquery' ), Tribe__Events__Template_Factory::get_vendor_scripts() );
-		$path   = Tribe__Events__Template_Factory::getMinFile( tribe_events_resource_url( 'tribe-events.js' ), true );
+		$deps   = array_merge( $this->deps, array( 'jquery' ), Tribe__Events__Views__Base_View::get_vendor_scripts() );
+		$path   = Tribe__Events__Views__Base_View::getMinFile( tribe_events_resource_url( 'tribe-events.js' ), true );
 		$handle = $this->prefix . '-calendar-script';
 		wp_enqueue_script( $handle, $path, $deps, $this->filter_js_version() );
 

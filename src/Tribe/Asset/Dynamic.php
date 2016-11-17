@@ -12,7 +12,7 @@ class Tribe__Events__Asset__Dynamic extends Tribe__Events__Asset__Abstract_Asset
 			)
 		);
 
-		$path = Tribe__Events__Template_Factory::getMinFile( tribe_events_resource_url( 'events-dynamic.js' ), true );
+		$path = Tribe__Events__Views__Base_View::getMinFile( tribe_events_resource_url( 'events-dynamic.js' ), true );
 
 		wp_enqueue_script( $this->prefix . '-dynamic', $path, $deps, $this->filter_js_version(), true );
 

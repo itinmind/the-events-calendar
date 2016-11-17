@@ -11,7 +11,7 @@
 		/**
 		 * @var array
 		 */
-		protected $deps;
+		protected $deps = array();
 
 		/**
 		 * @var string
