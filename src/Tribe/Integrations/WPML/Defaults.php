@@ -62,14 +62,28 @@ class Tribe__Events__Integrations__WPML__Defaults {
 	 * @return bool `false` if defaults were already set, `true` otherwise.
 	 */
 	public function set_defaults() {
-		// make this check again has the action is triggered many times in a request lifecycle
+		// make this check again as the action is triggered many times in a request lifecycle
 		if ( $this->has_set_defaults() ) {
+			return false;
+		}
+
+		if ( method_exists( $this->sitepress, 'core_tm' ) ) {
+			$translation_management = $this->sitepress->core_tm();
+		} else {
+			global $iclTranslationManagement;
+			$translation_management = $iclTranslationManagement;
+		}
+
+		$tm_is_active = ! empty( $iclTranslationManagement )
+						&& is_a( $iclTranslationManagement, 'TranslationManagement' );
+
+		if ( ! $tm_is_active ) {
 			return false;
 		}
 
 		$fields = $this->get_default_copy_fields();
 		foreach ( $fields as $field ) {
-			$this->sitepress->core_tm()->settings['custom_fields_translation'][ $field ] = WPML_COPY_CUSTOM_FIELD;
+			$translation_management->settings['custom_fields_translation'][ $field ] = WPML_COPY_CUSTOM_FIELD;
 		}
 
 		// remove the method to avoid infinite loops
@@ -77,17 +91,10 @@ class Tribe__Events__Integrations__WPML__Defaults {
 
 		// the Translation Management plugin might not be active on this
 		// installation, save this option only if Translation Management is active.
-		$translation_management = $this->sitepress->core_tm();
-		$tm_is_active           = ! empty( $translation_management )
-		                          && is_a( $translation_management, 'TranslationManagement' );
-		if ( $tm_is_active ) {
-			$translation_management->save_settings();
-			Tribe__Settings_Manager::set_option( $this->defaults_option_name, true );
+		$translation_management->save_settings();
+		Tribe__Settings_Manager::set_option( $this->defaults_option_name, true );
 
-			return true;
-		}
-
-		return false;
+		return true;
 	}
 
 	/**
