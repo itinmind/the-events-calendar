@@ -321,6 +321,7 @@ Please see the changelog for the complete list of changes in this release. Remem
 * Fix - Featured Images for Event Aggregator imports are works as expected again. [69465]
 * Fix - Google Calendar and iCalendar files are now updating it's repective events [68684]
 * Fix - On demand Event Aggregator records will update events corretly [69542]
+* Fix - WPML older version incompatibility issues []
 
 = [4.3.3] 2016-11-16 =
 
